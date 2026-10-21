@@ -980,8 +980,21 @@ function drawCover(ctx,img,x,y,w,h){
 }
 function rarityHue(r){return {'UR':'#ff4358','SSR':'#ffc847','SR':'#9b50f6','SP':'#f349c6'}[String(r||'').toUpperCase()]||'#52657b'}
 function statsForCard(team){return ['family','role','trait'].map(field=>sortedTeamStats(team,field))}
+/* v3.2: ordenação apenas para a apresentação dos retratos exportados. */
+const CARD_ROLE_ORDER=['Tanque','Guerreiro','Assassino','Mago','Atirador','Assistência'];
+const CARD_RARITY_ORDER=['UR','SSR','SR'];
+function sortedCardSlots(team){
+ return state.teams[team].filter(slot=>byId[slot.id]).sort((a,b)=>{
+  const heroA=byId[a.id],heroB=byId[b.id];
+  const roleA=CARD_ROLE_ORDER.indexOf(heroA.role),roleB=CARD_ROLE_ORDER.indexOf(heroB.role);
+  const priorityA=roleA<0?CARD_ROLE_ORDER.length:roleA,priorityB=roleB<0?CARD_ROLE_ORDER.length:roleB;
+  if(priorityA!==priorityB)return priorityA-priorityB;
+  const rarityA=CARD_RARITY_ORDER.indexOf(heroA.rarity),rarityB=CARD_RARITY_ORDER.indexOf(heroB.rarity);
+  return (rarityA<0?CARD_RARITY_ORDER.length:rarityA)-(rarityB<0?CARD_RARITY_ORDER.length:rarityB);
+ });
+}
 function renderCardCanvas(team,photoMap,brandLogo){
- const items=state.teams[team].slice(0,10),data=statsForCard(team),maxRows=Math.max(3,...data.map(x=>x.length));
+ const items=sortedCardSlots(team),data=statsForCard(team),maxRows=Math.max(3,...data.map(x=>x.length));
  const W=1600,M=46,G=13,P=(W-2*M-4*G)/5,top=42,picsBottom=top+2*P+G;
  const footerTop=picsBottom+24,footerHeight=Math.max(242,maxRows*38+72),linkBand=78,H=Math.round(footerTop+footerHeight+linkBand);
  const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
@@ -1052,12 +1065,13 @@ function drawComparisonCanvas(photoMap,brandLogo){
  const ctx=canvas.getContext('2d');
  const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#101f2e');bg.addColorStop(1,'#071019');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
  function panel(team,x,accent,data){
+  const sortedSlots=sortedCardSlots(team);
   const photoEnd=portraitsBottom+14;
   ctx.save();roundedBox(ctx,x-4,24,teamW+8,photoEnd-12,12);ctx.fillStyle='#10202f';ctx.fill();ctx.strokeStyle=accent;ctx.lineWidth=2;ctx.stroke();ctx.restore();
   // A pequena faixa superior é a única identificação cromática da equipe.
   ctx.fillStyle=accent;ctx.fillRect(x+14,24,teamW-28,3);
   for(let i=0;i<10;i++){
-   const slot=state.teams[team][i],hero=slot&&byId[slot.id];
+   const slot=sortedSlots[i],hero=slot&&byId[slot.id];
    const xx=x+pad+(i%5)*(P+spacing),yy=portraitsY+Math.floor(i/5)*(P+spacing);
    ctx.save();roundedBox(ctx,xx,yy,P,P,8);ctx.clip();ctx.fillStyle='#192e40';ctx.fillRect(xx,yy,P,P);
    const photo=hero&&photoMap[hero.id];if(photo)drawCover(ctx,photo,xx,yy,P,P);
