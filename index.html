@@ -133,6 +133,16 @@ button.vh-card-toggle:focus-visible{outline:2px solid var(--lime);outline-offset
 .vh-comparison-analysis{grid-column:1/-1;margin:0 0 12px}.vh-an-diffs{border-top:1px solid #30495a;margin-top:15px;padding-top:11px}.vh-an-diffs>div{padding:5px 0}
 .vh-an-empty{color:#8fa9ba;font-size:12px}
 @media(max-width:950px){.vh-an-columns,.vh-an-vs{grid-template-columns:1fr}.vh-an-columns section:not(:first-child),.vh-an-vs>div+div{border-left:0;border-top:1px solid #2c4354;padding:10px 0 0}.vh-card-toggle{margin-left:0}}
+
+/* v4.6: seleção opcional de estágios, restrita à análise aberta. */
+.vh-stage-options{margin-top:14px;border:1px solid #355064;border-radius:10px;padding:10px 13px;background:#101f2e}
+.vh-stage-options>summary{cursor:pointer;color:#c5ff29;font-weight:750;font-size:13px}
+.vh-stage-options>p{color:#bacbd7;font-size:12px;line-height:1.5;margin:9px 0 12px}
+.vh-stage-row{display:grid;grid-template-columns:minmax(130px,1fr) auto auto;align-items:center;gap:10px;margin:7px 0;color:#ecf4fa;font-size:12px}
+.vh-stage-name{overflow-wrap:anywhere;font-weight:600}
+.vh-stage-row label{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.vh-stage-row select{background:#152d3c;border:1px solid #49718a;border-radius:6px;color:#f2f8fd;padding:5px 4px;font-size:12px;max-width:112px}
+@media(max-width:540px){.vh-stage-row{grid-template-columns:minmax(90px,1fr) auto auto;gap:5px}.vh-stage-row select{max-width:85px;font-size:11px}}
 </style><style>
 .team-picker-box{width:min(620px,100%);max-height:90dvh;overflow-y:auto}.team-picker-box #teamPickerName{margin:14px 0 8px;color:#e7f5d9;text-align:center;font-weight:800;font-size:18px}
 .vh-skill-details{color:#e7efe5}.vh-portrait{display:block;max-width:160px;width:45%;aspect-ratio:1;object-fit:cover;margin:10px auto 16px;border-radius:12px;border:1px solid #536a48}.vh-skill{margin:12px 0;padding:12px;background:#0d1a17;border:1px solid #344b42;border-radius:10px}.vh-skill h4{margin:0 0 10px;color:#c5ff29;font-size:15px}.vh-stage{font-size:13px;line-height:1.5;margin:8px 0}.vh-stage b{color:#fff}.vh-stage-extra{margin:7px 0;border-top:1px solid #344b42;padding-top:7px}.vh-stage-extra summary{cursor:pointer;color:#c5ff29;font-size:13px;font-weight:700}.vh-stage-extra p{font-size:13px;line-height:1.5;margin:8px 0 2px}.vh-info-overlay[hidden]{display:none!important}.vh-info-overlay{position:fixed;inset:0;background:#000b;z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px}.vh-info-dialog{position:relative;width:min(620px,100%);max-height:90dvh;overflow-y:auto;background:#11170f;border:1px solid #6d8c55;border-radius:14px;padding:20px;box-shadow:0 18px 60px #000}.vh-info-close{position:sticky;top:0;float:right;z-index:1;font-size:26px;background:#263327;color:#fff;border:1px solid #526a48;border-radius:7px;cursor:pointer}.vh-info-title{text-align:center;margin:12px 0 5px;font-size:19px}.vh-catalog-open{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:#8aa766;text-underline-offset:3px}
@@ -1171,7 +1181,7 @@ function renderCardCanvas(team,photoMap,brandLogo){
  ctx.fillText('Esquadrão Ninja de Combate',M+22+139,footerTop+footerHeight-22);ctx.textAlign='left';
  const statsX=M+logoW+38,statsW=(W-M-36)-statsX,colW=statsW/3;
  if(withAnalysis){
-  vhCanvasColumns(ctx,vhTeamFacts(team),statsX+9,footerTop+53,statsW-16,37,20,7);
+  vhCanvasColumns(ctx,vhTeamFacts(team),statsX+9,footerTop+53,statsW-16,33,19,8);
  }else{
  for(let j=0;j<3;j++){
   const xx=statsX+j*colW;
@@ -1238,7 +1248,7 @@ function drawComparisonCanvas(photoMap,brandLogo){
   ctx.save();roundedBox(ctx,x-4,statY,teamW+8,statHeight,11);ctx.fillStyle='#0b1925';ctx.fill();ctx.strokeStyle='#294456';ctx.lineWidth=2;ctx.stroke();ctx.restore();
   const colW=(teamW-2*pad)/3;
   if(withAnalysis){
-   vhCanvasColumns(ctx,vhTeamFacts(team),x+pad+5,statY+55,teamW-2*pad-10,37,18,7);
+   vhCanvasColumns(ctx,vhTeamFacts(team),x+pad+5,statY+55,teamW-2*pad-10,33,17,8);
   }else{
   for(let j=0;j<3;j++){
    const xx=x+pad+j*colW,list=data[j];
@@ -1364,13 +1374,86 @@ function vhStagePair(level){
  const n=Math.max(1,Number(level)||1);
  return [n>=60?4:n>=40?3:n>=35?2:1,n>=50?3:n>=35?2:1];
 }
+function vhEffectiveStagePair(slot){
+ const auto=vhStagePair(slot.level),chosen=slot.skillStages||{};
+ return ['h1','h2'].map((key,i)=>{
+  const n=Number(chosen[key]);
+  return chosen[key]!==undefined&&Number.isInteger(n)&&n>=1&&n<=6?n:auto[i];
+ });
+}
 function vhActiveStages(slot){
- const skills=vhSkillData[slot.id]||[], stages=vhStagePair(slot.level);
+ const skills=vhSkillData[slot.id]||[],stages=vhEffectiveStagePair(slot);
  return skills.map((sk,i)=>sk.stages.slice(0,stages[i]).filter(Boolean));
 }
 function vhNormalize(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()}
 // As categorias sao detectadas apenas por descricoes de habilidades ja liberadas.
 // Termos condicionais nao significam, por si so, aplicacao do efeito.
+/* VH PLAYER v4.6 — relações conferidas nas 124 habilidades do catálogo.
+   Uma condição alternativa basta (ex.: Pain: paralisia OU lentidão de gelo OU cegueira).
+   O aplicativo NÃO infere efeitos por descrição genérica ou característica do ninja. */
+const VH_SYNERGY_RULES={
+ N002:{a:[['burn',1,1],['paralysis',2,3]]},
+ N003:{a:[['paralysis',1,1],['stun',2,3]],b:[['paralysis',2,5,'damage'],['iceSlow',2,5,'damage'],['blind',2,5,'damage']]},
+ N004:{a:[['poison',1,2]],b:[['poison',1,6,'damage']]},
+ N005:{a:[['blind',1,2],['blind',2,6],['poison',2,2]],b:[['poison',1,5,'damage']]},
+ N006:{a:[['iceSlow',1,3]]},
+ N007:{a:[['paralysis',1,2],['paralysis',2,1]]},
+ N009:{a:[['bleed',1,3],['poison',1,6]]},
+ N010:{a:[['iceSlow',2,2]],b:[['iceSlow',1,4,'damage']]},
+ N012:{a:[['burn',1,1],['burn',2,2]]},
+ N013:{a:[['stun',1,1],['bleed',2,1]],b:[['bleed',1,4,'damage'],['bleed',2,3,'damage']]},
+ N015:{a:[['burn',1,6],['burn',2,1]],b:[['burn',1,3,'critGuaranteed']]},
+ N016:{a:[['iceSlow',2,2]],b:[['iceSlow',1,5,'lifesteal']]},
+ N017:{a:[['burn',1,2],['burn',2,1]]},
+ N018:{a:[['poison',1,3],['poison',2,2]]},
+ N019:{a:[['paralysis',1,6],['paralysis',2,6]]},
+ N020:{a:[['iceSlow',1,2],['iceSlow',2,2]]},
+ N021:{a:[['poison',1,3],['poison',2,1]]},
+ N022:{a:[['bleed',2,1],['stun',2,3]]},
+ N023:{a:[['stun',1,1],['poison',2,4]]},
+ N024:{a:[['bleed',1,3]]},
+ N025:{a:[['bleed',1,1]],b:[['bleed',2,4,'lifesteal']]},
+ N026:{a:[['burn',1,2],['burn',2,1]],b:[['burn',2,5,'damage']]},
+ N027:{a:[['burn',1,1],['burn',2,2]],b:[['burn',1,6,'damage']]},
+ N028:{a:[['iceSlow',1,1],['iceSlow',2,2]]},
+ N029:{a:[['fireWeak',1,1],['burn',2,1],['stun',2,5]]},
+ N030:{a:[['paralysis',1,2],['paralysis',2,6]]},
+ N031:{a:[['bleed',1,1],['bleed',2,5]]},
+ N032:{a:[['paralysis',1,5],['paralysis',2,3]]},
+ N034:{a:[['burn',1,1],['burn',2,1]],b:[['burn',1,5,'damage']]},
+ N035:{a:[['iceSlow',1,1],['iceSlow',2,1]]},
+ N036:{a:[['paralysis',1,2],['paralysis',2,2]]},
+ N037:{a:[['poison',1,2],['poison',2,2]],b:[['poison',2,4,'damage']]},
+ N040:{a:[['stun',1,6]]},
+ N041:{a:[['bleed',1,2],['bleed',2,1]]},
+ N042:{a:[['blind',1,2],['blind',2,1]],b:[['blind',1,3,'damage'],['burn',2,3,'damage'],['bleed',2,3,'damage'],['poison',2,3,'damage']]},
+ N043:{a:[['paralysis',1,2],['paralysis',2,1]]},
+ N044:{a:[['burn',2,1],['burn',2,3]],b:[['burn',1,3,'damage'],['burn',2,4,'damage']]},
+ N046:{a:[['paralysis',2,2]],b:[['paralysis',1,4,'damage']]},
+ N047:{b:[['poison',2,5,'damage'],['bleed',2,5,'damage']]},
+ N048:{b:[['stun',1,6,'instant']]},
+ N049:{a:[['blind',1,3],['paralysis',2,3]],b:[['paralysis',1,4,'damage']]},
+ N050:{a:[['stun',2,3]]},
+ N051:{a:[['bleed',1,2],['bleed',2,5]],b:[['bleed',1,4,'damage']]},
+ N052:{a:[['burn',1,2]],b:[['burn',2,5,'damage'],['bleed',2,5,'damage'],['poison',2,5,'damage']]},
+ N053:{a:[['blind',1,5],['blind',2,1]],b:[['blind',1,3,'critDamage']]},
+ N054:{a:[['burn',1,2],['burn',2,2]]},
+ N055:{a:[['bleed',2,2]],b:[['bleed',2,5,'evasion']]},
+ N057:{a:[['blind',1,1],['bleed',1,3]],b:[['blind',1,2,'critDamage']]},
+ N059:{a:[['stun',2,3]]},
+ N060:{a:[['iceSlow',1,4]]}
+};
+function vhSynergyTags(slot){
+ const specs=VH_SYNERGY_RULES[slot.id]||{},unlocked=vhEffectiveStagePair(slot);
+ const available=record=>unlocked[record[1]-1]>=record[2];
+ return {
+  applies:[...new Set((specs.a||[]).filter(available).map(r=>r[0]))],
+  benefits:(specs.b||[]).filter(available).map(r=>({status:r[0],type:r[3]}))
+ };
+}
+const VH_SYNERGY_NAMES={burn:'Queimadura',poison:'Veneno',bleed:'Sangramento',paralysis:'Paralisia',iceSlow:'Lentidão de gelo',blind:'Cegueira',stun:'Atordoamento'};
+const VH_SYNERGY_BENEFITS={damage:'dano extra',critGuaranteed:'crítico garantido',critDamage:'dano crítico ampliado',lifesteal:'roubo de vida',evasion:'esquiva',instant:'habilidade imediata'};
+
 function vhEffects(slot){
  const act=vhActiveStages(slot),all=act.flat(),text=vhNormalize(all.join(' '));
  const has=(p)=>p.test(text);
@@ -1387,18 +1470,7 @@ function vhEffects(slot){
  });
  if(has(/\bdlt\b|dano continuo|dano por tempo/)||appliesStatus)res.add('DLT');
  if(has(/quebra de armadura|reduz(?:indo)? (?:a |sua |a sua )?(?:resistencia|precisao|armadura|defesa)|reducao (?:da|de) resistencia|reduz o efeito de precisao|reduzindo sua resistencia|reduz(?:ir)? a resistencia/))res.add('Debuff');
- const burnApply=all.some(original=>{
-  const line=vhNormalize(original);
-  if(/(?:dano extra|dano adicional)[^.!]{0,110}(?:queimadura|queimad)/.test(line))return false;
-  return /(?:aplica|causa|provoca|chance de|probabilidade de|efeito de|estado queimado)[^.!]{0,85}(?:queimadura|queimad)|\bqueimadura\s+por\s+\d+/.test(line);
- });
- const fireWeak=has(/(?:reduz|reduzindo|reduzida|reducao)(?:[^.!]{0,70})resistencia (?:a|ao|de) fogo/);
- const burnBonus=has(/(?:dano (?:extra|adicional)|bonus de dano)(?:[^.!]{0,75})(?:queimadura|queimad)|(?:contra|em) (?:inimigos|alvos) queimad/);
- const poisonApply=all.some(s=>/(?:aplica|causa|espalha|libera|pulveriza)[^.!]{0,100}(?:veneno|envenen)/i.test(vhNormalize(s)));
- const poisonBonus=has(/(?:dano extra|dano adicional)[^.!]{0,80}(?:veneno|envenen)/);
- const bleedApply=all.some(s=>/(?:aplica|causa|provoca)[^.!]{0,75}sangramento/i.test(vhNormalize(s)));
- const bleedBonus=has(/(?:dano extra|dano adicional)[^.!]{0,80}sangramento/);
- return {resources:[...res],synergy:{burnApply,fireWeak,burnBonus,poisonApply,poisonBonus,bleedApply,bleedBonus}};
+ return {resources:[...res],synergy:vhSynergyTags(slot)};
 }
 function vhShortName(hero){
  const name=hero.name.replace(/\s*\[(.*?)\]\s*/g,' $1 ').trim().replace(/\s+/g,' ');
@@ -1414,14 +1486,20 @@ function vhTeamFacts(team){
  const roles=VH_ANALYSIS_ROLE_ORDER.map(label=>[label,slots.filter(s=>byId[s.id].role===label).length]).filter(x=>x[1]>0);
  const computed=slots.map(s=>({slot:s,hero:byId[s.id],effects:vhEffects(s)}));
  const resources=VH_RESOURCES.map(label=>[label,computed.filter(x=>x.effects.resources.includes(label)).map(x=>vhShortName(x.hero))]).filter(x=>x[1].length);
- const groups={burnApply:[],fireWeak:[],burnBonus:[],poisonApply:[],poisonBonus:[],bleedApply:[],bleedBonus:[]};
- for(const x of computed)for(const k in groups)if(x.effects.synergy[k])groups[k].push(x.hero.id);
- const pair=(a,b)=>groups[a].some(id=>groups[b].some(id2=>id!==id2));
+ // Sinergia de equipe exige dois ninjas distintos: um aplica, outro aproveita.
  const synergies=[];
- if(pair('burnApply','fireWeak'))synergies.push('Queimadura + resistência ao fogo reduzida');
- if(pair('burnApply','burnBonus'))synergies.push('Queimadura + dano extra em queimados');
- if(pair('poisonApply','poisonBonus'))synergies.push('Veneno + dano extra em envenenados');
- if(pair('bleedApply','bleedBonus'))synergies.push('Sangramento + dano extra em sangrando');
+ const pairs=(status,benefitStatus)=>computed.flatMap(source=>
+  source.effects.synergy.applies.includes(status)?computed.filter(target=>
+   target.hero.id!==source.hero.id && (benefitStatus==='fireWeak'
+    ?target.effects.synergy.applies.includes('fireWeak')
+    :target.effects.synergy.benefits.some(b=>b.status===benefitStatus))
+  ).map(target=>({source,target})):[]);
+ if(pairs('burn','fireWeak').length)synergies.push('Queimadura + resistência ao fogo reduzida');
+ for(const status of ['burn','poison','bleed','paralysis','iceSlow','blind','stun']){
+  const types=new Set(pairs(status,status).flatMap(({target})=>
+   target.effects.synergy.benefits.filter(b=>b.status===status).map(b=>b.type)));
+  if(types.size)synergies.push(`${VH_SYNERGY_NAMES[status]} + ${[...types].map(t=>VH_SYNERGY_BENEFITS[t]).join(' / ')}`);
+ }
  // Características originais do catálogo, separadas dos recursos obtidos pelas habilidades.
  const traitCounts=new Map();
  for(const slot of slots){
@@ -1438,7 +1516,7 @@ function vhCommonDifferences(){
  const differences=[];
  for(const [id,sa] of a){
   if(!b.has(id))continue;
-  const sb=b.get(id),ha=vhStagePair(sa.level),hb=vhStagePair(sb.level),items=[];
+  const sb=b.get(id),ha=vhEffectiveStagePair(sa),hb=vhEffectiveStagePair(sb),items=[];
   for(let i=0;i<2;i++){
    if(ha[i]===hb[i])continue;
    const sk=(vhSkillData[id]||[])[i];if(!sk)continue;
@@ -1585,19 +1663,40 @@ function vhAnalysisSelected(){return document.getElementById('vhCardAnalysisTogg
 document.getElementById('vhCardAnalysisToggle').addEventListener('click',function(){
  this.setAttribute('aria-pressed',String(!vhAnalysisSelected()));
 });
-function vhRenderFactHtml(team){
+function vhStageEditorHtml(team,facts){
+ const options=(selected,auto)=>`<option value="" ${selected==null?'selected':''}>Auto (E${auto})</option>`+
+  Array.from({length:6},(_,i)=>`<option value="${i+1}" ${selected===i+1?'selected':''}>E${i+1}</option>`).join('');
+ const rows=facts.slots.map(slot=>{
+  const index=state.teams[team].indexOf(slot),hero=byId[slot.id],auto=vhStagePair(slot.level);
+  const h1=slot.skillStages?.h1,h2=slot.skillStages?.h2;
+  return `<div class="vh-stage-row"><span class="vh-stage-name">${vhEscape(vhShortName(hero))}</span>`+
+   `<label>H1 <select aria-label="Estágio da primeira habilidade de ${vhEscape(hero.name)}" data-vh-stage-team="${team}" data-vh-stage-index="${index}" data-vh-skill="h1">${options(h1,auto[0])}</select></label>`+
+   `<label>H2 <select aria-label="Estágio da segunda habilidade de ${vhEscape(hero.name)}" data-vh-stage-team="${team}" data-vh-stage-index="${index}" data-vh-skill="h2">${options(h2,auto[1])}</select></label></div>`;
+ }).join('');
+ return `<details class="vh-stage-options"><summary>Ajustar estágios das habilidades (opcional)</summary>`+
+  `<p>O modo Auto mantém os marcos de nível já usados pelo simulador, até H1 E4 e H2 E3. `+
+  `Para analisar os estágios 5 e 6, selecione os estágios realmente desbloqueados na sua conta. `+
+  `Os níveis exatos de desbloqueio desses estágios não estão documentados.</p>${rows}</details>`;
+}
+
+function vhRenderFactHtml(team,includeStageEditor=false){
  const facts=vhTeamFacts(team);
  if(!facts.slots.length)return '<p class="vh-an-empty">Adicione ninjas para visualizar a análise.</p>';
  const line=(label,body)=>`<div class="vh-an-line"><b>${vhEscape(label)}</b><span>${vhEscape(body)}</span></div>`;
  return '<div class="vh-an-columns">'+
   '<section><h4>Funções</h4>'+facts.roles.map(([k,n])=>line(k,n)).join('')+'</section>'+
   '<section><h4>Recursos</h4>'+facts.resources.map(([k,names])=>line(`${k} (${names.length})`,names.join(', '))).join('')+'</section>'+
-  '<section><h4>Sinergias</h4>'+(facts.synergies.length?facts.synergies.map(s=>`<p>${vhEscape(s)}</p>`).join(''):'<p>Nenhuma sinergia encontrada.</p>')+'</section></div>';
+  '<section><h4>Sinergias</h4>'+(facts.synergies.length?facts.synergies.map(s=>`<p>${vhEscape(s)}</p>`).join(''):'<p>Nenhuma sinergia encontrada.</p>')+'</section></div>'+
+  (includeStageEditor?vhStageEditorHtml(team,facts):'');
 }
 function vhUpdateAnalysisPanels(){
  for(const team of ['A','B']){
   const detail=document.getElementById('vhAnalysis'+team);
-  if(detail?.open)document.getElementById('vhAnalysisBody'+team).innerHTML=vhRenderFactHtml(team);
+  if(detail?.open){
+   const body=document.getElementById('vhAnalysisBody'+team),wasOpen=body.querySelector('.vh-stage-options')?.open;
+   body.innerHTML=vhRenderFactHtml(team,true);
+   if(wasOpen&&body.querySelector('.vh-stage-options'))body.querySelector('.vh-stage-options').open=true;
+  }
  }
  const comp=document.getElementById('vhAnalysisComparison');
  if(comp?.open){
@@ -1609,6 +1708,17 @@ function vhUpdateAnalysisPanels(){
     (diffs.length?'<section class="vh-an-diffs"><h4>Diferenças entre ninjas em comum</h4>'+vhDifferenceGroups(diffs).map(d=>`<div><b>${vhEscape(d.name)}</b> — ${d.items.map(it=>`H${it.skill} estágio ${it.stage}: ${vhEscape(it.text)}`).join('; ')}</div>`).join('')+'</section>':'');
  }
 }
+// E1–E6 são informados pelo jogador, sem adivinhar desbloqueios acima do nível 60.
+document.addEventListener('change',event=>{
+ const el=event.target.closest('select[data-vh-stage-team]');if(!el)return;
+ const team=el.dataset.vhStageTeam,index=Number(el.dataset.vhStageIndex),skill=el.dataset.vhSkill;
+ const slot=state.teams[team]?.[index];if(!slot||!byId[slot.id]||!['h1','h2'].includes(skill))return;
+ const next={...(slot.skillStages||{})};
+ if(el.value==='')delete next[skill];
+ else {const stage=Number(el.value);if(!Number.isInteger(stage)||stage<1||stage>6)return;next[skill]=stage;}
+ if(Object.keys(next).length)slot.skillStages=next;else delete slot.skillStages;
+ save();vhUpdateAnalysisPanels();
+});
 for(const team of ['A','B'])document.getElementById('vhAnalysis'+team).addEventListener('toggle',vhUpdateAnalysisPanels);
 document.getElementById('vhAnalysisComparison').addEventListener('toggle',vhUpdateAnalysisPanels);
 for(const root of ['slotsA','slotsB'])document.getElementById(root).addEventListener('change',()=>setTimeout(vhUpdateAnalysisPanels,0));
